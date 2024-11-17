@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fortune Bequinhos</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(
+                45deg,
+                #ff8c00 0%,    /* Laranja sunset */
+                #ff6b6b 50%,   /* Coral */
+                #4ecdc4 100%   /* Azul turquesa */
+            );
+            font-family: 'Arial', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-attachment: fixed;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        body {
+            background-size: 200% 200%;
+            animation: gradientBG 15s ease infinite;
+        }
+
+        .game-container {
+            max-width: 400px;
+            width: 95%;
+            background: linear-gradient(145deg, #d4293d, #bb1f33);
+            padding: 20px;
+            border-radius: 25px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            color: #FFD700;
+            font-size: 2em;
+            margin: 0 0 20px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .balance {
+            background: rgba(139, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 15px;
+            font-size: 1.2em;
+            margin: 15px 0;
+        }
+
+        .slot-machine {
+            background: #FFD700;
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .slot {
+            background: white;
+            border-radius: 10px;
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2em;
+        }
+
+        .bet-controls {
+            background: rgba(139, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 15px;
+            color: #FFD700;
+        }
+
+        .multiplier-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .multiplier-buttons button {
+            background: #FFD700;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            color: #8b0000;
+        }
+
+        .controls button {
+            background: #FFD700;
+            border: none;
+            padding: 15px 40px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #8b0000;
+            margin-top: 15px;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            transition: transform 0.2s;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <div class="game-container">
+        <h1>FORTUNE BEQUINHOS</h1>
+        
+        <div class="balance">
+            BEQUICOINS: <span id="balance">1000</span>
+        </div>
+
+        <div class="slot-machine">
+            <div class="slot" id="slot1">🎰</div>
+            <div class="slot" id="slot2">🎰</div>
+            <div class="slot" id="slot3">🎰</div>
+        </div>
+
+        <div class="bet-controls">
+            <div>Aposta Base: 10 BEQUICOINS</div>
+            <div>Multiplicador: <span id="currentMultiplier">1</span>x</div>
+            <div>Aposta Total: <span id="totalBet">10</span> BEQUICOINS</div>
+            
+            <div class="multiplier-buttons">
+                <button onclick="setMultiplier(1)">1x</button>
+                <button onclick="setMultiplier(2)">2x</button>
+                <button onclick="setMultiplier(3)">3x</button>
+                <button onclick="setMultiplier(5)">5x</button>
+                <button onclick="setMultiplier(10)">10x</button>
+                <button onclick="setMultiplier(20)">20x</button>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="spin()" id="spinButton">GIRAR</button>
+        </div>
+    </div>
+
+    <script>
+        let balance = 1000;
+        const symbols = ['🐯', '🐯', '💰', '💰', '💰', '🎋', '🎋', '🍊', '🍊', '🍊'];
+        let isSpinning = false;
+        const BASE_BET = 10;
+        let currentMultiplier = 1;
+
+        function updateBalance() {
+            document.getElementById('balance').textContent = balance;
+        }
+
+        async function showWinMessage(prize) {
+            let title = '🎉 PARABÉNS! 🎉';
+            let icon = 'success';
+            
+            if (prize >= 1000 * currentMultiplier) {
+                title = '🐯 MEGA VITÓRIA! 🐯';
+            } else if (prize >= 500 * currentMultiplier) {
+                title = '💰 GRANDE VITÓRIA! 💰';
+            }
+            
+            await Swal.fire({
+                title: title,
+                text: `Você ganhou ${prize} BEQUICOINS!`,
+                icon: icon,
+                confirmButtonText: 'OK',
+                background: '#2c2c2c',
+                color: '#fff',
+                confirmButtonColor: '#FFD700',
+                showClass: {
+                    popup: 'animate__animated animate__fadeInDown'
+                },
+                hideClass: {
+                    popup: 'animate__animated animate__fadeOutUp'
+                }
+            });
+        }
+
+        function getRandomSymbol() {
+            const randomValue = Math.random();
+            if (randomValue < 0.08) {
+                return '🐯';
+            } else if (randomValue < 0.20) {
+                return '💰';
+            } else if (randomValue < 0.35) {
+                return '🎋';
+            }
+            return '🍊';
+        }
+
+        function calculatePrize(results) {
+            let basePrice = 0;
+            
+            if (results[0] === results[1] && results[1] === results[2]) {
+                if (results[0] === '🐯') {
+                    basePrice = 800;
+                } else if (results[0] === '💰') {
+                    basePrice = 400;
+                } else if (results[0] === '🎋') {
+                    basePrice = 150;
+                } else {
+                    basePrice = 80;
+                }
+            } else if (results[0] === results[1] || results[1] === results[2] || results[0] === results[2]) {
+                if (results.includes('🐯')) {
+                    basePrice = 40;
+                } else if (results.includes('💰')) {
+                    basePrice = 25;
+                } else if (results.includes('🎋')) {
+                    basePrice = 15;
+                }
+            }
+            
+            return basePrice * currentMultiplier;
+        }
+
+        function setMultiplier(multiplier) {
+            currentMultiplier = multiplier;
+            document.getElementById('currentMultiplier').textContent = multiplier;
+            document.getElementById('totalBet').textContent = BASE_BET * multiplier;
+        }
+
+        async function spin() {
+            const totalBet = BASE_BET * currentMultiplier;
+            
+            if (isSpinning || balance < totalBet) {
+                if (balance < totalBet) {
+                    await Swal.fire({
+                        title: 'BEQUICOINS Insuficientes!',
+                        text: 'Você não tem BEQUICOINS suficientes para esta aposta.',
+                        icon: 'error',
+                        confirmButtonText: 'OK',
+                        background: '#2c2c2c',
+                        color: '#fff',
+                        confirmButtonColor: '#d4293d'
+                    });
+                }
+                return;
+            }
+            
+            try {
+                isSpinning = true;
+                const spinButton = document.getElementById('spinButton');
+                spinButton.disabled = true;
+                
+                balance -= totalBet;
+                updateBalance();
+                
+                const slots = document.querySelectorAll('.slot');
+                const results = [getRandomSymbol(), getRandomSymbol(), getRandomSymbol()];
+                
+                slots.forEach(slot => {
+                    slot.textContent = '';
+                    slot.classList.add('spinning');
+                });
+
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                for (let i = 0; i < slots.length; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    slots[i].classList.remove('spinning');
+                    slots[i].textContent = results[i];
+                }
+
+                const prize = calculatePrize(results);
+                if (prize > 0) {
+                    balance += prize;
+                    await showWinMessage(prize);
+                    updateBalance();
+                }
+            } catch (error) {
+                console.error('Erro durante o giro:', error);
+            } finally {
+                isSpinning = false;
+                spinButton.disabled = false;
+            }
+        }
+
+        // Atualiza o CSS do botão desabilitado
+        function updateButtonStyles() {
+            const style = document.createElement('style');
+            style.textContent = `
+                .controls button:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        // Chama a função para adicionar os estilos
+        updateButtonStyles();
+
+        // Inicialização
+        updateBalance();
+        setMultiplier(1);
+    </script>
+</body>
+</html>
