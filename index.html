@@ -86,22 +86,27 @@
             color: #FFD700;
         }
 
-        .multiplier-buttons {
+        .bet-input {
             display: flex;
-            flex-wrap: wrap;
-            gap: 5px;
+            align-items: center;
             justify-content: center;
-            margin-top: 10px;
+            gap: 10px;
+            margin: 15px 0;
         }
 
-        .multiplier-buttons button {
-            background: #FFD700;
-            border: none;
-            padding: 8px 15px;
+        .bet-input input {
+            width: 100px;
+            padding: 8px;
+            border: 2px solid #FFD700;
             border-radius: 5px;
-            cursor: pointer;
+            background: rgba(255,255,255,0.9);
+            font-size: 1.1em;
+            text-align: center;
+        }
+
+        .bet-input label, .bet-input span {
+            color: #FFD700;
             font-weight: bold;
-            color: #8b0000;
         }
 
         .controls button {
@@ -138,17 +143,10 @@
         </div>
 
         <div class="bet-controls">
-            <div>Aposta Base: 10 BEQUICOINS</div>
-            <div>Multiplicador: <span id="currentMultiplier">1</span>x</div>
-            <div>Aposta Total: <span id="totalBet">10</span> BEQUICOINS</div>
-            
-            <div class="multiplier-buttons">
-                <button onclick="setMultiplier(1)">1x</button>
-                <button onclick="setMultiplier(2)">2x</button>
-                <button onclick="setMultiplier(3)">3x</button>
-                <button onclick="setMultiplier(5)">5x</button>
-                <button onclick="setMultiplier(10)">10x</button>
-                <button onclick="setMultiplier(20)">20x</button>
+            <div class="bet-input">
+                <label for="betAmount">Valor da Aposta:</label>
+                <input type="number" id="betAmount" min="10" value="10" step="10">
+                <span>BEQUICOINS</span>
             </div>
         </div>
 
@@ -161,94 +159,97 @@
         let balance = 1000;
         const symbols = ['🐯', '🐯', '💰', '💰', '💰', '🎋', '🎋', '🍊', '🍊', '🍊'];
         let isSpinning = false;
-        const BASE_BET = 10;
-        let currentMultiplier = 1;
 
         function updateBalance() {
             document.getElementById('balance').textContent = balance;
         }
 
-        async function showWinMessage(prize) {
+        async function showWinMessage(prize, betAmount) {
+            const multiplier = prize / betAmount;
             let title = '🎉 PARABÉNS! 🎉';
-            let icon = 'success';
             
-            if (prize >= 1000 * currentMultiplier) {
+            if (multiplier >= 10) {
                 title = '🐯 MEGA VITÓRIA! 🐯';
-            } else if (prize >= 500 * currentMultiplier) {
+            } else if (multiplier >= 5) {
                 title = '💰 GRANDE VITÓRIA! 💰';
             }
             
             await Swal.fire({
                 title: title,
-                text: `Você ganhou ${prize} BEQUICOINS!`,
-                icon: icon,
-                confirmButtonText: 'OK',
+                text: `Você apostou ${betAmount} e ganhou ${prize} BEQUICOINS! (${multiplier}x)`,
+                icon: 'success',
                 background: '#2c2c2c',
                 color: '#fff',
-                confirmButtonColor: '#FFD700',
-                showClass: {
-                    popup: 'animate__animated animate__fadeInDown'
-                },
-                hideClass: {
-                    popup: 'animate__animated animate__fadeOutUp'
-                }
+                confirmButtonColor: '#FFD700'
             });
         }
 
         function getRandomSymbol() {
             const randomValue = Math.random();
-            if (randomValue < 0.08) {
+            
+            // Novas probabilidades reduzidas
+            if (randomValue < 0.04) {        // 4% de chance para tigre (antes 8%)
                 return '🐯';
-            } else if (randomValue < 0.20) {
+            } else if (randomValue < 0.12) { // 8% de chance para dinheiro (antes 12%)
                 return '💰';
-            } else if (randomValue < 0.35) {
+            } else if (randomValue < 0.22) { // 10% de chance para bambu (antes 15%)
                 return '🎋';
             }
-            return '🍊';
+            return '🍊';                     // 78% de chance para laranja (antes 65%)
         }
 
-        function calculatePrize(results) {
-            let basePrice = 0;
+        function calculatePrize(results, betAmount) {
+            let multiplier = 0;
             
+            // Três símbolos iguais
             if (results[0] === results[1] && results[1] === results[2]) {
                 if (results[0] === '🐯') {
-                    basePrice = 800;
+                    multiplier = 25;    // Aumentado de 15x para 25x
                 } else if (results[0] === '💰') {
-                    basePrice = 400;
+                    multiplier = 15;    // Aumentado de 10x para 15x
                 } else if (results[0] === '🎋') {
-                    basePrice = 150;
+                    multiplier = 8;     // Aumentado de 5x para 8x
                 } else {
-                    basePrice = 80;
+                    multiplier = 4;     // Aumentado de 3x para 4x
                 }
-            } else if (results[0] === results[1] || results[1] === results[2] || results[0] === results[2]) {
+            } 
+            // Dois símbolos iguais
+            else if (results[0] === results[1] || results[1] === results[2] || results[0] === results[2]) {
                 if (results.includes('🐯')) {
-                    basePrice = 40;
+                    multiplier = 3;     // Aumentado de 2x para 3x
                 } else if (results.includes('💰')) {
-                    basePrice = 25;
+                    multiplier = 2;     // Aumentado de 1.5x para 2x
                 } else if (results.includes('🎋')) {
-                    basePrice = 15;
+                    multiplier = 1.5;   // Aumentado de 1.2x para 1.5x
                 }
             }
             
-            return basePrice * currentMultiplier;
-        }
-
-        function setMultiplier(multiplier) {
-            currentMultiplier = multiplier;
-            document.getElementById('currentMultiplier').textContent = multiplier;
-            document.getElementById('totalBet').textContent = BASE_BET * multiplier;
+            return Math.floor(betAmount * multiplier);
         }
 
         async function spin() {
-            const totalBet = BASE_BET * currentMultiplier;
+            const betInput = document.getElementById('betAmount');
+            const betAmount = parseInt(betInput.value);
             
-            if (isSpinning || balance < totalBet) {
-                if (balance < totalBet) {
+            // Validações
+            if (isNaN(betAmount) || betAmount < 10) {
+                await Swal.fire({
+                    title: 'Aposta Inválida!',
+                    text: 'A aposta mínima é de 10 BEQUICOINS',
+                    icon: 'error',
+                    background: '#2c2c2c',
+                    color: '#fff',
+                    confirmButtonColor: '#d4293d'
+                });
+                return;
+            }
+            
+            if (isSpinning || balance < betAmount) {
+                if (balance < betAmount) {
                     await Swal.fire({
                         title: 'BEQUICOINS Insuficientes!',
                         text: 'Você não tem BEQUICOINS suficientes para esta aposta.',
                         icon: 'error',
-                        confirmButtonText: 'OK',
                         background: '#2c2c2c',
                         color: '#fff',
                         confirmButtonColor: '#d4293d'
@@ -262,7 +263,7 @@
                 const spinButton = document.getElementById('spinButton');
                 spinButton.disabled = true;
                 
-                balance -= totalBet;
+                balance -= betAmount;
                 updateBalance();
                 
                 const slots = document.querySelectorAll('.slot');
@@ -281,10 +282,10 @@
                     slots[i].textContent = results[i];
                 }
 
-                const prize = calculatePrize(results);
+                const prize = calculatePrize(results, betAmount);
                 if (prize > 0) {
                     balance += prize;
-                    await showWinMessage(prize);
+                    await showWinMessage(prize, betAmount);
                     updateBalance();
                 }
             } catch (error) {
@@ -312,7 +313,6 @@
 
         // Inicialização
         updateBalance();
-        setMultiplier(1);
     </script>
 </body>
 </html>
